@@ -27,4 +27,5 @@ def load(fname):
 
     return settings
 
+
 print(load("settings.cfg"))
