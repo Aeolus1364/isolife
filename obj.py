@@ -9,7 +9,7 @@ class Cell(pygame.sprite.Sprite):
         super().__init__()
         self.image = res.cube
         self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
+        self.mask = pygame.mask.from_surface(self.image)  # pixel perfect mask for collision
 
     def draw(self, surf):
         surf.blit(self.image, self.rect)
@@ -45,7 +45,6 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.grid_pos = pos
         self.offset = dim
-        print(dim, pos)
 
     def draw(self, surf, anchor):
         self.rect.topleft = tuple(map(operator.add, self.offset, anchor))  # adds offset to anchor
@@ -56,14 +55,14 @@ class Grid:
     def __init__(self, dim, anchor=None):
         self.tiles = []
         self.dim = dim
-        if anchor is None:
+        if anchor is None:  # sets anchor value, default 0, 0
             self.anchor = [0, 0]
         else:
             self.anchor = anchor
 
         xc = [0, 0]
 
-        for x in range(dim[0]):
+        for x in range(dim[0]):  # generating grid
             xc[0] += TILEWS
             xc[1] -= TILEHS
             yc = xc[:]
@@ -71,9 +70,17 @@ class Grid:
                 yc[0] += TILEWS
                 yc[1] += TILEHS
                 self.tiles.append(Tile(yc[:], (x, y)))
-                # print(yc)
-                # print(yc, (x, y))
 
     def draw(self, surf):
         for tile in self.tiles:
             tile.draw(surf, self.anchor)
+
+
+class Renderer(pygame.sprite.Group):  # container rendering sprites in correct order
+    def __init__(self):
+        super().__init__()
+
+    def draw(self, surface):  # renders sprites in order of y coordinate
+        ordered = sorted(self.sprites(), key=lambda x: x.rect.top)
+        for i in ordered:
+            surface.blit(i.image, i.rect)
