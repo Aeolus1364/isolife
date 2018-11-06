@@ -45,10 +45,10 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.grid_pos = pos
         self.offset = dim
+        print(dim, pos)
 
     def draw(self, surf, anchor):
         self.rect.topleft = tuple(map(operator.add, self.offset, anchor))  # adds offset to anchor
-        print(self.offset, anchor, self.rect)
         surf.blit(self.image, self.rect)
 
 
@@ -70,11 +70,10 @@ class Grid:
             for y in range(dim[1]):
                 yc[0] += TILEWS
                 yc[1] += TILEHS
-                self.tiles.append(Tile(yc, (x, y)))
+                self.tiles.append(Tile(yc[:], (x, y)))
                 # print(yc)
                 # print(yc, (x, y))
 
     def draw(self, surf):
         for tile in self.tiles:
             tile.draw(surf, self.anchor)
-        print()

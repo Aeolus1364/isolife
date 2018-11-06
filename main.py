@@ -15,7 +15,7 @@ class Client:
         self.running = True
         self.tracking = False
 
-        self.grid = obj.Grid((1, 2))
+        self.grid = obj.Grid((50, 50))
         self.test = obj.Cell()
 
     def loop(self):
