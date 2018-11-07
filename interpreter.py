@@ -1,7 +1,7 @@
 class Interpreter:
     def __init__(self):
         self.priority = 0  # current priority level
-        self.active = 0  # current active packet
+        self.current = 0  # current packet
 
         self.stream = []
         self.var = []
@@ -14,19 +14,29 @@ class Interpreter:
         self.var = var
 
     def step(self):
-        packet = self.stream[self.active]
+        packet = self.stream[self.current]
         packtype = self.get_type(packet)
+        if self.priority:
+            active = self.cmds[self.priority - 1]
+        else:
+            active = None
 
         if packtype == "cmd":
             self.priority += 1
             self.cmds.append(self.get_cmd(packet)(self.priority))  # adds new active command
+            active = self.cmds[self.priority - 1]
 
         elif packtype == "val":
-            self.cmds[self.priority - 1].argument(packet)  # sends argument to priority command
+            active.argument(packet)  # sends argument to priority command
 
-        print(packet, packtype, self.priority)
+        if active.complete():  # on command completion
+            self.var = active.evaluate(self.var)  # execute command
+            del self.cmds[self.priority - 1]  # remove command from active
+            self.priority -= 1  # drop priority
 
-        self.active += 1
+        self.current += 1
+
+        print(self.var)
 
     def get_type(self, packet):  # evaluates whether a packet is a command or value
         if type(packet) == str:
@@ -57,15 +67,18 @@ class Command:
         self.args.append(arg)
         self.num_args -= 1
 
+    def complete(self):
+        return self.num_args == 0
+
 
 class Define(Command):
     def __init__(self, priority):
         super().__init__(2, priority, "vars")
 
     def evaluate(self, vars):
+        print(self.args)
         vars[self.args[0]] = self.args[1]
         return vars
-
 
 # class Print(Command):
 #     def __init__(self, priority):
