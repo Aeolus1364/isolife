@@ -1,17 +1,26 @@
 class Interpreter:
-    def __init__(self):
+    def __init__(self, file):
         self.priority = 0  # current priority level
         self.current = 0  # current packet
 
         self.stream = []
+        self.load(file)
+        print(self.stream)
         self.var = []
         self.cmds = []  # highest priority command receives arguments
 
         self.halt = False
 
-    def load(self, stream, var):
-        self.stream = stream
-        self.var = var
+    def load(self, file):
+        load_stream = []
+        with open(file, "r") as f:  # opens file
+            text = f.read()
+            for w in text.split():  # iterates through all words in text
+                if w.isdigit():  # if string is a valid int, converted
+                    load_stream.append(int(w))
+                else:  # otherwise kept the same
+                    load_stream.append(w)
+        self.stream = load_stream
 
     def step(self):
         packet = self.stream[self.current]
@@ -77,7 +86,7 @@ class Define(Command):
 
     def evaluate(self, vars):
         print(self.args)
-        vars[self.args[0]] = self.args[1]
+        vars.append(self.args[1])
         return vars
 
 # class Print(Command):
@@ -86,10 +95,10 @@ class Define(Command):
 
 
 stream = ['def', 0, 1]
-var = []
+var = []  # should this be a dictionary?
 
-interpreter = Interpreter()
-interpreter.load(stream, var)
+interpreter = Interpreter("commands.txt")
+# interpreter.load(stream, var)
 
 for i in stream:
     interpreter.step()
