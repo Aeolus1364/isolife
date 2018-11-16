@@ -1,3 +1,6 @@
+import commands
+
+
 class Interpreter:
     def __init__(self, file):
         self.priority = 0  # current priority level
@@ -6,8 +9,10 @@ class Interpreter:
         self.stream = []
         self.load(file)
         print(self.stream)
-        self.var = []
+        self.var = {}
         self.cmds = []  # highest priority command receives arguments
+
+        self.list_cmd = open("cmd_list.txt", "r").read().split()  # list of all commands
 
         self.halt = False
 
@@ -23,15 +28,16 @@ class Interpreter:
         self.stream = load_stream
 
     def step(self):
-        packet = self.stream[self.current]
-        packtype = self.get_type(packet)
-        if self.priority:
-            active = self.cmds[self.priority - 1]
+        packet = self.stream[self.current]  # packet is the current item in the stream
+        packtype = self.get_type(packet)  # packets can be values or commands
+
+        if self.priority:  # if there is a priority
+            active = self.cmds[self.priority - 1]  # command with that priority set to active
         else:
             active = None
 
         if packtype == "cmd":
-            self.priority += 1
+            self.priority += 1  # new command gets 1 higher priority
             self.cmds.append(self.get_cmd(packet)(self.priority))  # adds new active command
             active = self.cmds[self.priority - 1]
 
@@ -39,23 +45,44 @@ class Interpreter:
             active.argument(packet)  # sends argument to priority command
 
         if active.complete():  # on command completion
-            self.var = active.evaluate(self.var)  # execute command
+            type = active.return_type  # get return type
+            if type == "var":  # passes in requested data to modify
+                self.var = active.evaluate(self.var)
+            elif type == "stream":
+                self.stream = active.evaluate(self.stream)
+            elif type == "current":
+                self.current = active.evaluate(self.current)
+            elif type == "none":
+                active.evaluate()
+            else:  # error if return type not there or doesn't match
+                self.raise_error(f"'{active.__class__.__name__}' has an invalid return type: '{active.return_type}'")
+
             del self.cmds[self.priority - 1]  # remove command from active
             self.priority -= 1  # drop priority
 
+        if self.current == len(self.stream) - 1:  # stops on last command
+            self.halt = True
+
+        print(self.current, self.var)
+
         self.current += 1
 
-        print(self.var)
+    def loop(self):
+        while not self.halt:
+            self.step()
 
     def get_type(self, packet):  # evaluates whether a packet is a command or value
-        if type(packet) == str:
-            return "cmd"
-        elif type(packet) == int:
+        if type(packet) == int:  # all integers are values
             return "val"
+        else:
+            if packet in self.list_cmd:  # strings in command list are commands
+                return "cmd"
+            else:  # if they aren't commands they are string values
+                return "val"
 
     def get_cmd(self, packet):
-        if packet == "def":
-            return Define
+        if packet == "set":
+            return commands.Set
         else:
             self.raise_error(f"{packet} is an invalid command")
 
@@ -64,41 +91,7 @@ class Interpreter:
         self.halt = True
 
 
-class Command:
-    def __init__(self, num_args, priority, return_type):
-        self.num_args = num_args  # number of arguments it takes
-        self.priority = priority  # priority level of a command
-        self.args = []  # list of actual arguments of a function
-        self.active = True
-        self.return_type = return_type
-
-    def argument(self, arg):
-        self.args.append(arg)
-        self.num_args -= 1
-
-    def complete(self):
-        return self.num_args == 0
-
-
-class Define(Command):
-    def __init__(self, priority):
-        super().__init__(2, priority, "vars")
-
-    def evaluate(self, vars):
-        print(self.args)
-        vars.append(self.args[1])
-        return vars
-
-# class Print(Command):
-#     def __init__(self, priority):
-#         super().__init__(1, priority)
-
-
-stream = ['def', 0, 1]
-var = []  # should this be a dictionary?
-
 interpreter = Interpreter("commands.txt")
 # interpreter.load(stream, var)
 
-for i in stream:
-    interpreter.step()
+interpreter.loop()
